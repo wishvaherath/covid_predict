@@ -1,0 +1,93 @@
+---
+title: "tsfknn for forecasting timeseries using machine learning"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+source : [cran site](https://cran.r-project.org/web/packages/tsfknn/vignettes/tsfknn.html)
+
+## Traditional methods
+* ARIMA 
+* exponential smoothing
+both using forecast package
+
+## ML methods
+* artificial neurial networks (**nnfor package**)
+* Gaussian process
+* KNN
+
+
+```{r}
+install.packages("tsfknn")
+```
+
+
+
+## simple example 
+
+h: number of future values to be predicted
+lags: lagged values of the target used as features (1:2 - lagged values 1 and 2 should be used)
+k: thenumber of nearest neighbours used by the KNN model
+
+```{r}
+ts = ts(1:88)
+library(tsfknn)
+pred <- knn_forecasting(ts, h = 1, lags = 1:20, k = 2)
+knn_examples(pred)
+```
+
+```{r}
+library(ggplot2)
+autoplot(pred, highlight = "neighbors")
+```
+
+### multi-step ahead i.e. predicting more than one value
+
+```{r}
+pred <- knn_forecasting(USAccDeaths, h = 12, lags = 1:12, k = 2, msas = "MIMO")
+autoplot(pred, highlight = "neighbors", faceting = FALSE)
+```
+
+### recursive strategy i.e. forecasting one but iteratively so you forcast many
+
+```{r}
+timeS <- window(UKgas, start = c(1976, 1))
+pred <- knn_forecasting(timeS, h = 2, lags = 1:4, k = 2, msas = "recursive")
+autoplot(pred, highlight = "neighbors")
+```
+
+## Selecting the K value
+
+* start with - k to the squre troot of the number of trainin examples
+* optimize k (slow)
+*  use multiple k values and average the results
+
+```{r}
+pred <- knn_forecasting(ldeaths, h = 12, lags = 1:12, k = c(2, 4))
+```
+
+**you can also let the package to figre it out!!!**
+__Just dont specifiy a value__
+
+## Evaluating the model
+```{r}
+pred <- knn_forecasting(ts(1:20), h = 4, lags = 1:2, k = 2)
+ro <- rolling_origin(pred, h = 4)
+ro$global_accu
+```
+
+```{r}
+pred <- knn_forecasting(ldeaths, h = 12, lags = 1:12)
+
+```
+
+
+# summary
+```{r}
+pred <- knn_forecasting(USAccDeaths, h = 12, lags = 1:12, msas = "MIMO")
+#dont specifiy the k value,let the package identify it
+autoplot(pred, highlight = "neighbors", faceting = FALSE)
+ro <- rolling_origin(pred, h = 4)
+ro$global_accu
+```
+

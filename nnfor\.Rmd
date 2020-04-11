@@ -1,0 +1,36 @@
+---
+title: "nnfor package"
+output: html_notebook
+---
+
+
+```{r}
+install.packages("nnfor")
+```
+
+
+
+## Simplest 
+```{r}
+library(nnfor)
+fit1 <- mlp(AirPassengers)
+print(fit1)
+plot(fit1)
+```
+
+#hd is hidden layers
+```{r}
+library(nnfor)
+fit1 <- mlp(AirPassengers, hd.auto.type="valid", hd.max=5)
+print(fit1)
+plot(fit1)
+```
+
+
+##forcasting
+
+```{r}
+frc <- forecast(fit1,h=12)
+print(frc)
+```
+
