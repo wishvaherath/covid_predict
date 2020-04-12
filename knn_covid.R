@@ -1,7 +1,7 @@
 
 library(tidyverse)
 library(tsfknn)
-
+options(scipen=10000000)
 #modifiers
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #this is the oririnal file
@@ -13,11 +13,8 @@ search_location = "_US"
 threshold = 100 #cutoof for the trimming of the time series
 days_past = 5 #days to go back for the past projection
 days_future = 5 #days to go forward for the future projection
-min_r2 = 0.7
+min_r2 = 0.8
 max_r2 = 0.95
-
-
-
 
 
 
@@ -81,246 +78,140 @@ get_query_df <- function(main_df, search_location){
 }
 
 
-df = read.csv(data_file)
-dx = get_query_df(df, "_US")
-
-
-pred_now <- knn_forecasting(ts(dx$now$y), h = 7, lags = 1:7, msas = "MIMO")
-autoplot(pred_now, highlight = "neighbors", faceting = FALSE)
-
-pred_past <- knn_forecasting(ts(dx$past$y), h = 7, lags = 1:7, msas = "MIMO")
-autoplot(pred_past, highlight = "neighbors", faceting = FALSE)
-
-pred$prediction
-ro <- rolling_origin(pred, h = 2)
-ro$global_accu
-
-
-nls_model <- nls(y ~ (x ^ b) + c, dx$now,  start=c(b=2, c=0), trace=T)
-df_nls <- dx$future
-df_nls <- add_column(df_nls, y=(predict(nls_model, dx$future))) %>% add_column(class="predicted_nonlinear_ls")
-
-
-nls_model_past <- nls(y ~ (x ^ b) + c, dx$past,  start=c(b=2, c=0), trace=T)
-df_nls_past <- dx$future
-df_nls_past <- add_column(df_nls_past, y=(predict(nls_model_past, dx$future))) %>% add_column(class="predicted_nonlinear_ls_PAST")
-
-
-all_df <- df_nls %>% bind_rows(dx$now) %>% bind_rows(df_nls_past)
-
-#calcualte R2
-alpha = head(df_nls, n=nrow(df_nls)-5)$y
-beta = dx$now$y
-
-cor(alpha, beta)^2
-
-now_last = tail(df_nls, n=1)
-past_last = tail(df_nls_past, n=1)
-
-
-now_final = tail(df_nls, n=days_future)
-past_final = tail(df_nls_past, n=days_future)
-
-
-
-g = ggplot() + geom_point(data=dx$now, aes(x=x, y=y), color="black", alpha=0.5) 
-g = g + geom_line(data=now_final, aes(x=x, y=y), color="red", alpha=0.5)  + geom_point(data=now_final, aes(x=x, y=y), color="red", alpha=0.5) 
-g = g + geom_line(data=past_final, aes(x=x, y=y), color="blue", alpha=0.5)  + geom_point(data=past_final, aes(x=x, y=y), color="blue", alpha=0.5) 
-g = g + geom_curve(aes(x =past_last$x, y = past_last$y, xend = now_last$x, yend = now_last$y),curvature=-0.2, alpha=0.5, arrow = arrow(length = unit(0.05, "npc")))
-
-g
-
-
-
-g = ggplot(data=all_df, aes(x=x, y=y, group=class, color=class)) + geom_line( alpha=0.5) + geom_point(data=dx$now, aes(x=x, y=y), color="black", alpha=0.5) 
-g = g + geom_curve(aes(x =past_last$x+4, y = past_last$y, xend = now_last$x+4, yend = now_last$y),curvature=0, alpha=0.5, arrow = arrow(length = unit(0.1, "npc")))
-
-g
-
-
-
-
-
-
-
-
-
-get_quantile <- function(ddf){
-  temp = ddf %>% filter(x==max(ddf$x))
-  return(list("Q"=quantile(temp$y), "xx"=max(ddf$x)))
-}
-
-
-
-
-q_now = get_quantile(dx$now)
-q_past = get_quantile(dx$past)
-
-g = ggplot(data=dx$now, aes(x=x, y=y, group=class, color=class)) + geom_line( alpha=0.5)  # + geom_point(data=input_df, aes(x=x, y=y), color="black") 
-g = g + annotate("pointrange", x = q_now$xx, y = q_now$Q["50%"], ymin = q_now$Q["25%"], ymax = q_now$Q["75%"], colour = "red",alpha=0.5)
-g = g + annotate("pointrange", x = q_past$xx, y = q_past$Q["50%"], ymin = q_past$Q["25%"], ymax = q_past$Q["75%"], colour = "blue",alpha=0.5)
-g = g + geom_curve(aes(x = q_past$xx, y = q_past$Q["50%"], xend = q_now$xx, yend = q_now$Q["50%"]),curvature=0.2, alpha=0.5, arrow = arrow(length = unit(0.03, "npc")))
-g
-
-
-
-
-
-combined_df_now = combined_df_now %>% add_column(time="now")
-combined_df_past = combined_df_past %>% add_column(time="past")
-combined_df = bind_rows(combined_df_now, combined_df_past)
-
-#ggplot(data=combined_df, aes(x=x, y=y, group=class, color=class)) + geom_line()  + geom_point( size=0.5) + geom_point(data=input_df, aes(x=x, y=y), color="black") + theme_light()
-g1 = ggplot(data=combined_df_past, aes(x=x, y=y, group=class)) + geom_line(color="grey")  + geom_point( size=0.5) + geom_point(data=input_df, aes(x=x, y=y), color="red") 
-g2 = ggplot(data=combined_df_now, aes(x=x, y=y, group=class)) + geom_line(color="grey")  + geom_point( size=0.5) + geom_point(data=input_df, aes(x=x, y=y), color="red") 
-
-library(grid)
-grid.draw(cbind(ggplotGrob(g1), ggplotGrob(g2)))
-ggplot(data=combined_df, aes(x=x, y=y, group=class, color=class)) + geom_line() + facet_grid(time ~ .) + geom_point( size=0.5) + geom_point(data=input_df, aes(x=x, y=y), color="black") + theme_light()
-
-
-ggplot(data=combined_df, aes(x=x, y=y, group=interaction(class, time), color=time, shape=time)) + geom_line()  + geom_point( size=0.5)
-
-ggplot(d, aes(x=x, y=y, colour=treatment, shape = replicate,
-              group=interaction(treatment, replicate))) + 
-  geom_point() + geom_line()
-
-#ggplot(data=combined_df, aes(x=x, y=y, color=class, group=class, linetype=class)) + geom_line()  + geom_point( size=0.5) 
-
-
-#ggplot(data=combined_df, aes(x=x, y=y, group=class, color=class)) + geom_line()  + geom_point( size=0.5) + ggplot(data=combined_df, aes(x=x, y=y, group=class, color=class))
-
-#ggplot() + geom_line(data=combined_df, aes(x=x, y=y, group=class), color="grey") 
-
-#ggplot(data=df_main, aes(x=x, y=y, color=class, group=class, linetype=class)) + geom_line() + geom_point(size=.5) 
-
-
-
-
-
-
-
-
-
-
-combined_df_now_all = tibble() #for predictions using the entire dataset
-combined_df_past_all = tibble() #for predictions using current dataset - past_days
-counterz = 0
-
-all_locations = c('_US')
-for (search_location in all_locations){
-  counterz = counterz + 1
+predict_covid <- function(search_location){
   
-  #msgBox <- tkmessageBox(title = "Title of message box",
-  #                       message = search_location, icon = "info", type = "ok")
-  print(paste("Working on ", search_location))
+  dx = get_query_df(df, search_location) #search query here
   
-  #filter for a given country
-  data_row = df %>% dplyr::filter(location == search_location)
-  #remove all but the time series
-  data_vector = as_vector(data_row %>% select(starts_with("X")))
   
-  #finding the index of the first value greater than "Threshold"
-  threshold_index = 0
-  counter = 1
-  for (i in data_vector){
-    if (i >= threshold){
-      threshold_index = counter 
-      break
+  #--------------------------------------------------------------------------------------------------------------------------------
+  # try NLS
+  
+  nls_model <- nls(y ~ (x ^ b) + c, dx$now,  start=c(b=2, c=0), trace=T)
+  df_nls <- dx$future
+  df_nls <- add_column(df_nls, y=(predict(nls_model, dx$future))) %>% add_column(class="predicted_nonlinear_ls")
+  
+  
+  nls_model_past <- nls(y ~ (x ^ b) + c, dx$past,  start=c(b=2, c=0), trace=T)
+  df_nls_past <- dx$future
+  df_nls_past <- add_column(df_nls_past, y=(predict(nls_model_past, dx$future))) %>% add_column(class="predicted_nonlinear_ls_PAST")
+  
+  
+  all_df <- df_nls %>% bind_rows(dx$now) %>% bind_rows(df_nls_past)
+  
+  #calcualte R2
+  alpha = head(df_nls, n=nrow(df_nls)-5)$y
+  beta = dx$now$y
+  
+  nls_r2 = cor(alpha, beta)^2
+  
+  
+    
+    #fit is good
+    
+    #Plotting for nls 
+    
+    nls_now_last = tail(df_nls, n=1)
+    nls_past_last = tail(df_nls_past, n=1)
+    
+    nls_gap = nls_past_last$y - nls_now_last$y
+   
+    nls_string = "" 
+    if (nls_gap > 0) {
+      #past_last is high, things have improved
+      nls_string = paste("The forecast has improved by  ", floor(abs(nls_gap)), " cases over the past ", days_past, " days.")
+      
+    } else {
+      
+      nls_string = paste("The forecast has worsened by ", floor(abs(nls_gap)), " cases over the past ", days_past, " days.")
     }
-    counter = counter + 1
-  }
+    
+    
+    nls_now_final = tail(df_nls, n=days_future)
+    nls_past_final = tail(df_nls_past, n=days_future+days_past)
+    
+    
+    
+    g = ggplot() + geom_point(data=dx$now, aes(x=x, y=y), color="black", alpha=0.5) 
+    g = g + geom_line(data=nls_now_final, aes(x=x, y=y), color="red", alpha=0.5)  + geom_point(data=nls_now_final, aes(x=x, y=y), color="red", alpha=0.5) 
+    g = g + geom_line(data=nls_past_final, aes(x=x, y=y), color="blue", alpha=0.5)  + geom_point(data=nls_past_final, aes(x=x, y=y), color="blue", alpha=0.5) 
+    g = g + geom_curve(aes(x =nls_past_last$x, y = nls_past_last$y, xend = nls_now_last$x, yend = nls_now_last$y),curvature=-0.2, alpha=0.5, arrow = arrow(length = unit(0.05, "npc")))
+    
+    
+    #g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, "for the next ", days_future, " days\n", nls_string), subtitle = paste("Black: Real data \nBlue: Forecast using upto-date data\nRed: Forecast without data from last ", days_past, " days\nmethod: NLS ; R2: ", nls_r2))
+    g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, "for the next ", days_future, " days.",sep=""), subtitle = nls_string)
+    
+    g = g + theme(plot.subtitle=element_text( face="italic", color="red"))
+   
+    nls_g = g 
+    
   
-  total_length = length(data_vector)
-  length_after_trim = total_length - threshold_index
+    #doing forecasting by knn
+    
+      
+    max_t = dx$now$x %>% max #last timepoint of the original data
+    skip_to_next=F
+    tryCatch({ 
+    
+    pred_now <- knn_forecasting(ts(dx$now$y), h = days_future, lags = 1:7, msas = "MIMO")
+    #autoplot(pred_now, highlight = "neighbors", faceting = FALSE)
+    #create tibble with predicted data
+    pred_now_df = tibble(x= (max_t+1):(max_t+days_future), y=pred_now$prediction, class="current prediction")
+    
+    
+    pred_past <- knn_forecasting(ts(dx$past$y), h = days_past + days_future, lags = 1:1, msas = "MIMO")
+    #autoplot(pred_past, highlight = "neighbors", faceting = FALSE)
+    pred_past_df = tibble(x= (max_t+1-days_past):(max_t+days_future), y=pred_past$prediction, class="past prediction")
+   
+    }, error = function(e){skip_to_next <<- TRUE})
+    
+    if (skip_to_next){
+      
+      return (list(nls_plot=nls_g, nls_gap=nls_gap, nls_r2=nls_r2, knn_plot="ERROR", knn_gap="ERROR"))
+      
+    }
+    #pred_now$prediction
+    #ro <- rolling_origin(pred_now, h = days_future)
+    #ro$global_accu
+    
+    now_last = pred_now_df %>% filter(x == max_t + days_future) 
+    past_last = pred_past_df %>% filter(x == max_t + days_future)
+    knn_gap = past_last$y - now_last$y
+    
+     
+    knn_string = "" 
+    if (knn_gap > 0) {
+      #past_last is high, things have improved
+      knn_string = paste("The forecast has improved by  ", floor(abs(knn_gap)), " cases over the past ", days_past, " days.")
+      
+    } else {
+      
+      knn_string = paste("The forecast has worsened by ", floor(abs(knn_gap)), " cases over the past ", days_past, " days.")
+    }
+   
+    
+    g = ggplot() + geom_point(data=dx$now, aes(x=x, y=y), color="black", alpha=0.5) 
+    g = g + geom_line(data=pred_past_df, aes(x=x, y=y), color="red", alpha=0.3)  + geom_point(data=pred_past_df, aes(x=x, y=y), color="red", alpha=0.5) 
+    g = g + geom_line(data=pred_now_df, aes(x=x, y=y), color="blue", alpha=0.3)  + geom_point(data=pred_now_df, aes(x=x, y=y), color="blue", alpha=0.5) 
+    g = g + geom_curve(aes(x =past_last$x, y = past_last$y, xend = now_last$x, yend = now_last$y),curvature=0, alpha=0.8,color="black", arrow = arrow(length = unit(0.05, "npc")))
+    #g = g + theme(plot.subtitle=element_text(size=10, face="italic", color="grey"))
+    g = g + theme(plot.subtitle=element_text( face="italic", color="red"))
+    
+    #g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, "for the next ", days_future, " days\n", knn_string), subtitle = paste("Black: Real data \nBlue: Forecast using upto-date data\nRed: Forecast without data from last ", days_past, " days\nMethod: KNN"))
+    g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, "for the next ", days_future, " days.", sep=""), subtitle = knn_string)
+    knn_g = g
+                                                                             
+    
+    
+    return (list(nls_plot=nls_g, nls_gap=nls_gap, nls_r2=nls_r2, knn_plot=knn_g, knn_gap=knn_gap))
+   
   
-  #data vector that contains the original dataset used for training
-  usable_data_vector = data_vector[threshold_index:total_length]
-  
-  if (length(usable_data_vector) < 10) {
-    print(paste("Warning: small vector for ", search_location))
-    next
-  }
-  
-  #future_df is input_df x values plus days_future
-  future_day_list = 1:(length(usable_data_vector) + days_future)
-  future_df = tibble(x=future_day_list)
-  
-  
-  #past_df cotains the input_df data minus the selected days in days_past
-  past_df = tibble(y=usable_data_vector[1:(length(usable_data_vector)-days_past)], x=1:(length(usable_data_vector)-days_past))
-  
-  
-  #input_df contains the original data used for testing
-  input_df = tibble(y=usable_data_vector, x=1:length(usable_data_vector)) %>% add_column(class="CSSE_data")
-  #return(input_df)
-  
-  
-  
-  
-  
-  temp_now = carrotify(input_df, future_df, min_r2, max_r2, caret_methods) %>% add_column(location = search_location)
-  combined_df_now_all = bind_rows(combined_df_now_all, temp_now)
-  
-  temp_past = carrotify(past_df, future_df, min_r2, max_r2) %>% add_column(location = search_location)
-  combined_df_past_all = bind_rows(combined_df_past_all, temp_past)
-  
+
 }
 
 
-
-get_quantile <- function(ddf){
-  temp = ddf %>% dplyr::filter(x==max(ddf$x))
-  return(list("Q"=quantile(temp$y), "xx"=max(ddf$x)))
-}
+df = read.csv(data_file)
+result = predict_covid("_US")
 
 
-s = "_US"
-combined_df_now = combined_df_now_all %>% filter(location == s)
-combined_df_past = combined_df_past_all %>% filter(location == s)
-
-
-q_now = get_quantile(combined_df_now)
-q_past = get_quantile(combined_df_past)
-
-g = ggplot(data=combined_df_now, aes(x=x, y=y, group=class, color=class)) + geom_line( , alpha=0.5)  # + geom_point(data=input_df, aes(x=x, y=y), color="black") 
-g = g + annotate("pointrange", x = q_now$xx, y = q_now$Q["50%"], ymin = q_now$Q["25%"], ymax = q_now$Q["75%"], colour = "red",alpha=0.5)
-g = g + annotate("pointrange", x = q_past$xx, y = q_past$Q["50%"], ymin = q_past$Q["25%"], ymax = q_past$Q["75%"], colour = "blue",alpha=0.5)
-g = g + geom_curve(aes(x = q_past$xx, y = q_past$Q["50%"], xend = q_now$xx, yend = q_now$Q["50%"]),curvature=0.2, alpha=0.5, arrow = arrow(length = unit(0.03, "npc")))
-g
-
-
-combined_df_now = combined_df_now %>% add_column(time="now")
-combined_df_past = combined_df_past %>% add_column(time="past")
-combined_df = bind_rows(combined_df_now, combined_df_past)
-
-#ggplot(data=combined_df, aes(x=x, y=y, group=class, color=class)) + geom_line()  + geom_point( size=0.5) + geom_point(data=input_df, aes(x=x, y=y), color="black") + theme_light()
-g1 = ggplot(data=combined_df_past, aes(x=x, y=y, group=class)) + geom_line(color="grey")  + geom_point( size=0.5) + geom_point(data=input_df, aes(x=x, y=y), color="red") 
-g2 = ggplot(data=combined_df_now, aes(x=x, y=y, group=class)) + geom_line(color="grey")  + geom_point( size=0.5) + geom_point(data=input_df, aes(x=x, y=y), color="red") 
-
-library(grid)
-grid.draw(cbind(ggplotGrob(g1), ggplotGrob(g2)))
-ggplot(data=combined_df, aes(x=x, y=y, group=class, color=class)) + geom_line() + facet_grid(time ~ .) + geom_point( size=0.5) + geom_point(data=input_df, aes(x=x, y=y), color="black") + theme_light()
-
-
-ggplot(data=combined_df, aes(x=x, y=y, group=interaction(class, time), color=time, shape=time)) + geom_line()  + geom_point( size=0.5)
-
-ggplot(d, aes(x=x, y=y, colour=treatment, shape = replicate,
-              group=interaction(treatment, replicate))) + 
-  geom_point() + geom_line()
-
-#ggplot(data=combined_df, aes(x=x, y=y, color=class, group=class, linetype=class)) + geom_line()  + geom_point( size=0.5) 
-
-
-#ggplot(data=combined_df, aes(x=x, y=y, group=class, color=class)) + geom_line()  + geom_point( size=0.5) + ggplot(data=combined_df, aes(x=x, y=y, group=class, color=class))
-
-#ggplot() + geom_line(data=combined_df, aes(x=x, y=y, group=class), color="grey") 
-
-#ggplot(data=df_main, aes(x=x, y=y, color=class, group=class, linetype=class)) + geom_line() + geom_point(size=.5) 
-
-
-
-#---------------------------------------------------
-
-
-
+result = predict_covid("_United Kingdom")
+result = predict_covid("_Iran")
