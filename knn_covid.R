@@ -1,4 +1,4 @@
-
+library(cowplot)
 library(tidyverse)
 library(tsfknn)
 options(scipen=10000000)
@@ -84,7 +84,7 @@ get_query_df <- function(usable_data_vector, days_future, days_past){
 }
 
 
-predict_covid <- function(dx, days_future, days_past){
+predict_covid <- function(dx, days_future, days_past, search_location){
   
   #dx = get_query_df(df, search_location) #search query here
   
@@ -255,9 +255,11 @@ if (is.null(usable_data_vector)){
 dx = get_query_df(usable_data_vector, days_future, days_past)
 
 
-result = predict_covid(dx, days_future, days_past)
+result = predict_covid(dx, days_future, days_past, search_location)
 
 
-result = predict_covid("Queensland_Australia")
-result = predict_covid("_Iran")
+#result = predict_covid("Queensland_Australia")
+#result = predict_covid("_Iran")
+plot_grid(result$nls_plot, result$knn_plot,labels = c("nls", "knn"), ncol = 1)
+
 }
