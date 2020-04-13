@@ -151,7 +151,7 @@ predict_covid <- function(dx, days_future, days_past, search_location){
     #g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, "for the next ", days_future, " days\n", nls_string), subtitle = paste("Black: Real data \nBlue: Forecast using upto-date data\nRed: Forecast without data from last ", days_past, " days\nmethod: NLS ; R2: ", nls_r2))
     g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, " for the next ", days_future, " days.",sep=""), subtitle = nls_string)
     
-    g = g + theme(plot.subtitle=element_text( face="italic", color="red"))
+    g = g + theme(plot.title = element_text(size = 20, face = "bold"), plot.subtitle=element_text( face="italic", color="red"))
    
     nls_g = g 
     
@@ -217,7 +217,9 @@ predict_covid <- function(dx, days_future, days_past, search_location){
     
     
     #g = g + theme(plot.subtitle=element_text(size=10, face="italic", color="grey"))
-    g = g + theme(plot.subtitle=element_text( face="italic", color="red"))
+    g = g + theme(plot.title = element_text(size = 20, face = "bold"), plot.subtitle=element_text( face="italic", color="red"))
+    
+    #g = g + theme(plot.subtitle=element_text( face="italic", color="red"))
     
     #g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, "for the next ", days_future, " days\n", knn_string), subtitle = paste("Black: Real data \nBlue: Forecast using upto-date data\nRed: Forecast without data from last ", days_past, " days\nMethod: KNN"))
     g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, " for the next ", days_future, " days.", sep=""), subtitle = knn_string)
