@@ -17,8 +17,7 @@ min_r2 = 0.8
 max_r2 = 0.95
 
 
-
-get_query_df <- function(main_df, search_location){
+get_data_vector <- function(main_df, search_location, threshold){
   #load data csv
   df = main_df
   #combine province and country
@@ -50,8 +49,18 @@ get_query_df <- function(main_df, search_location){
   
   if (length(usable_data_vector) < 10) {
     print(paste("Warning: small vector for ", search_location))
-    next
+    usable_data_vector= NULL
   }
+  
+  return (usable_data_vector)
+  
+}
+
+
+get_query_df <- function(usable_data_vector, days_future, days_past){
+  
+  
+
   
   #future_df is input_df x values plus days_future
   future_day_list = 1:(length(usable_data_vector) + days_future)
@@ -78,9 +87,9 @@ get_query_df <- function(main_df, search_location){
 }
 
 
-predict_covid <- function(search_location){
+predict_covid <- function(dx, days_future, days_past){
   
-  dx = get_query_df(df, search_location) #search query here
+  #dx = get_query_df(df, search_location) #search query here
   
   
   #--------------------------------------------------------------------------------------------------------------------------------
@@ -134,11 +143,16 @@ predict_covid <- function(search_location){
     g = ggplot() + geom_point(data=dx$now, aes(x=x, y=y), color="black", alpha=0.5) 
     g = g + geom_line(data=nls_now_final, aes(x=x, y=y), color="red", alpha=0.5)  + geom_point(data=nls_now_final, aes(x=x, y=y), color="red", alpha=0.5) 
     g = g + geom_line(data=nls_past_final, aes(x=x, y=y), color="blue", alpha=0.5)  + geom_point(data=nls_past_final, aes(x=x, y=y), color="blue", alpha=0.5) 
-    g = g + geom_curve(aes(x =nls_past_last$x, y = nls_past_last$y, xend = nls_now_last$x, yend = nls_now_last$y),curvature=-0.2, alpha=0.5, arrow = arrow(length = unit(0.05, "npc")))
-    
+    #g = g + geom_curve(aes(x =nls_past_last$x, y = nls_past_last$y, xend = nls_now_last$x, yend = nls_now_last$y),curvature=-0.2, alpha=0.5, arrow = arrow(length = unit(0.05, "npc")))
+    g = g + geom_curve(aes(x = 0, y = nls_past_last$y, xend = 0, yend = nls_now_last$y),curvature=0, alpha=0.8,color="black", arrow = arrow(length = unit(0.05, "npc")))
+    g = g + geom_hline(yintercept=nls_now_last$y, linetype="dashed", color = "red", alpha=0.5)
+    g = g + geom_hline(yintercept=nls_past_last$y, linetype="dashed", color = "blue", alpha=0.5)
+    g = g + annotate("text", x = (nls_now_last$x)/4, y = nls_now_last$y + 10 , label = paste("Forcast for next ", days_future, " days using current data.", sep=""), color="red")
+    g = g + annotate("text", x = (nls_past_last$x)/4, y = nls_past_last$y + 10 , label = paste("Forcast for next ", days_future, " days using ", days_past, " days old data.", sep=""), color="blue")
+    g = g + annotate("text",  x = (nls_now_last$x)/2, y = 0, label=paste("Expected cases in 5 days\n", floor(nls_now_last$y), sep=""), size=5, color="red")
     
     #g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, "for the next ", days_future, " days\n", nls_string), subtitle = paste("Black: Real data \nBlue: Forecast using upto-date data\nRed: Forecast without data from last ", days_past, " days\nmethod: NLS ; R2: ", nls_r2))
-    g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, "for the next ", days_future, " days.",sep=""), subtitle = nls_string)
+    g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, " for the next ", days_future, " days.",sep=""), subtitle = nls_string)
     
     g = g + theme(plot.subtitle=element_text( face="italic", color="red"))
    
@@ -192,12 +206,24 @@ predict_covid <- function(search_location){
     g = ggplot() + geom_point(data=dx$now, aes(x=x, y=y), color="black", alpha=0.5) 
     g = g + geom_line(data=pred_past_df, aes(x=x, y=y), color="red", alpha=0.3)  + geom_point(data=pred_past_df, aes(x=x, y=y), color="red", alpha=0.5) 
     g = g + geom_line(data=pred_now_df, aes(x=x, y=y), color="blue", alpha=0.3)  + geom_point(data=pred_now_df, aes(x=x, y=y), color="blue", alpha=0.5) 
-    g = g + geom_curve(aes(x =past_last$x, y = past_last$y, xend = now_last$x, yend = now_last$y),curvature=0, alpha=0.8,color="black", arrow = arrow(length = unit(0.05, "npc")))
+    #g = g + geom_curve(aes(x =past_last$x, y = past_last$y, xend = now_last$x, yend = now_last$y),curvature=0, alpha=0.8,color="black", arrow = arrow(length = unit(0.05, "npc")))
+    g = g + geom_curve(aes(x = 0, y = past_last$y, xend = 0, yend = now_last$y),curvature=0, alpha=0.8,color="black", arrow = arrow(length = unit(0.05, "npc")))
+    g = g + geom_hline(yintercept=now_last$y, linetype="dashed", color = "blue", alpha=0.5)
+    g = g + geom_hline(yintercept=past_last$y, linetype="dashed", color = "red", alpha=0.5)
+    
+    g = g + annotate("text", x = (past_last$x)/4, y = past_last$y + 10 , label = paste("Forcast for next ", days_future, " days using ", days_past, " days old data.", sep=""))
+    
+    g = g + annotate("text", x = (now_last$x)/4, y = now_last$y + 10 , label = paste("Forcast for next ", days_future, " days using current data.", sep=""))
+    g = g + annotate("text",  x = (now_last$x)/2, y = 0, label=paste("Expected cases in 5 days\n", floor(now_last$y), sep=""), size=5)
+    
+    #g = g + annotate("text", x = 0, y = past_last$y , label = "Forcast from lagging data")
+    
+    
     #g = g + theme(plot.subtitle=element_text(size=10, face="italic", color="grey"))
     g = g + theme(plot.subtitle=element_text( face="italic", color="red"))
     
     #g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, "for the next ", days_future, " days\n", knn_string), subtitle = paste("Black: Real data \nBlue: Forecast using upto-date data\nRed: Forecast without data from last ", days_past, " days\nMethod: KNN"))
-    g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, "for the next ", days_future, " days.", sep=""), subtitle = knn_string)
+    g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, " for the next ", days_future, " days.", sep=""), subtitle = knn_string)
     knn_g = g
                                                                              
     
@@ -209,9 +235,23 @@ predict_covid <- function(search_location){
 }
 
 
+#actual code commented so that the app can source it. 
+
+if (F) {
 df = read.csv(data_file)
-result = predict_covid("_US")
+
+usable_data_vector = get_data_vector(df, search_location, threshold)
+
+if (is.null(usable_data_vector)){
+  print("Less than sufficent datapoints")
+}
+
+dx = get_query_df(usable_data_vector, days_future, days_past)
 
 
-result = predict_covid("_United Kingdom")
+result = predict_covid(dx, days_future, days_past)
+
+
+result = predict_covid("Queensland_Australia")
 result = predict_covid("_Iran")
+}
