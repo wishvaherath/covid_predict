@@ -105,8 +105,8 @@ predict_covid <- function(dx, days_future, days_past, search_location){
   all_df <- df_nls %>% bind_rows(dx$now) %>% bind_rows(df_nls_past)
   
   #calcualte R2
-  alpha = head(df_nls, n=nrow(df_nls)-5)$y
-  beta = dx$now$y
+  alpha = head(df_nls, n=nrow(df_nls)-days_future)$y
+  beta = dx$now$y # this is the original df
   
   nls_r2 = cor(alpha, beta)^2
   
