@@ -20,10 +20,7 @@ max_r2 = 0.95
 get_data_vector <- function(main_df, search_location, threshold){
   #load data csv
   df = main_df
-  #combine province and country
-  df = df %>% unite("location", Province.State, Country.Region, sep="_", remove = F)
-  all_locations = df$location %>% unique
-  
+
   data_row = df %>% filter(location == search_location)
   #remove all but the time series
   
@@ -238,7 +235,16 @@ predict_covid <- function(dx, days_future, days_past){
 #actual code commented so that the app can source it. 
 
 if (F) {
+  
+  
+
 df = read.csv(data_file)
+#load data csv
+#combine province and country
+df = df %>% unite("location", Province.State, Country.Region, sep="_", remove = F)
+all_locations = df$location %>% unique
+
+
 
 usable_data_vector = get_data_vector(df, search_location, threshold)
 
