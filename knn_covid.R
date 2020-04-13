@@ -223,7 +223,7 @@ predict_covid <- function(dx, days_future, days_past, search_location){
     
     #g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, "for the next ", days_future, " days\n", knn_string), subtitle = paste("Black: Real data \nBlue: Forecast using upto-date data\nRed: Forecast without data from last ", days_past, " days\nMethod: KNN"))
     g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, " for the next ", days_future, " days.", sep=""), subtitle = knn_string)
-    g = g +  coord_fixed(ratio=10)
+    #g = g +  coord_fixed(ratio=10)
     knn_g = g
                                                                              
     
