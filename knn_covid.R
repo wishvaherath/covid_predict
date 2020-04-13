@@ -14,6 +14,7 @@ threshold = 100 #cutoof for the trimming of the time series
 days_past = 5 #days to go back for the past projection
 days_future = 5 #days to go forward for the future projection
 min_r2 = 0.8
+
 max_r2 = 0.95
 
 
