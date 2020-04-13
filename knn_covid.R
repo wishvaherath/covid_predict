@@ -1,4 +1,4 @@
-library(cowplot)
+#library(cowplot)
 library(tidyverse)
 library(tsfknn)
 options(scipen=10000000)
@@ -263,6 +263,6 @@ result = predict_covid(dx, days_future, days_past, search_location)
 
 #result = predict_covid("Queensland_Australia")
 #result = predict_covid("_Iran")
-plot_grid(result$nls_plot, result$knn_plot,labels = c("nls", "knn"), ncol = 1)
+#plot_grid(result$nls_plot, result$knn_plot,labels = c("nls", "knn"), ncol = 1)
 
 }
