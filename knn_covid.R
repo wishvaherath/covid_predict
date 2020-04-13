@@ -151,7 +151,7 @@ predict_covid <- function(dx, days_future, days_past, search_location){
     #g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, "for the next ", days_future, " days\n", nls_string), subtitle = paste("Black: Real data \nBlue: Forecast using upto-date data\nRed: Forecast without data from last ", days_past, " days\nmethod: NLS ; R2: ", nls_r2))
     g = g + xlab("Days since 100 cases") + ylab("Number of Cases") + ggtitle(paste("COVID-19 case forecast of ", search_location, " for the next ", days_future, " days.",sep=""), subtitle = nls_string)
     
-    g = g + theme(plot.title = element_text(size = 25, face = "bold"), plot.subtitle=element_text( face="italic", color="red"))
+    g = g + theme(plot.title = element_text(size = 25, face = "bold"), plot.subtitle=element_text( face="bold", color="red", size=20))
    
     nls_g = g 
     
@@ -211,13 +211,13 @@ predict_covid <- function(dx, days_future, days_past, search_location){
     g = g + annotate("text", x = (past_last$x)/4, y = past_last$y + 10 , label = paste("Forcast for next ", days_future, " days using ", days_past, " days old data.", sep=""))
     
     g = g + annotate("text", x = (now_last$x)/4, y = now_last$y + 10 , label = paste("Forcast for next ", days_future, " days using current data.", sep=""))
-    g = g + annotate("text",  x = (now_last$x)/2, y = 0, label=paste("Expected cases in 5 days\n", floor(now_last$y), sep=""), size=5, color="red", face="bold")
+    g = g + annotate("text",  x = (now_last$x)/2, y = 0, label=paste("Expected cases in 5 days\n", floor(now_last$y), sep=""), size=5, color="red")
     
     #g = g + annotate("text", x = 0, y = past_last$y , label = "Forcast from lagging data")
     
     
     #g = g + theme(plot.subtitle=element_text(size=10, face="italic", color="grey"))
-    g = g + theme(plot.title = element_text(size = 25, face = "bold"), plot.subtitle=element_text( face="bold", color="red"))
+    g = g + theme(plot.title = element_text(size = 25, face = "bold"), plot.subtitle=element_text( face="bold", color="red", size=20))
     
     #g = g + theme(plot.subtitle=element_text( face="italic", color="red"))
     
